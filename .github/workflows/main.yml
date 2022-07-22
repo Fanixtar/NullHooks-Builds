@@ -1,0 +1,44 @@
+name: Publish
+
+on: 
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 0"
+
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Install MSBuild
+      uses: microsoft/setup-msbuild@v1.0.2
+
+    - name: Clone
+      shell: bash
+      run: git clone --recurse-submodules https://github.com/r4v10l1/NullHooks
+        
+    - name: Build solution
+      working-directory: ./NullHooks
+      env:
+        SOLUTION_FILE_PATH: ./src/NullHooks.sln
+        BUILD_CONFIGURATION: Release
+      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} ${{env.SOLUTION_FILE_PATH}}
+        
+    - name: Removing unused files
+      shell: bash
+      run: |
+        rm -rf ./NullHooks/src/output/release/*.pdb
+      
+    - name: Upload latest artifact
+      uses: actions/upload-artifact@v3.1.0
+      with:
+        name: NullHooks-release
+        path: ./NullHooks/src/output/release/*
+        if-no-files-found: error
